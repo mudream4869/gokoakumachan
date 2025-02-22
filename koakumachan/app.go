@@ -2,58 +2,52 @@ package koakumachan
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"os/signal"
+	"gokoakumachan/koakumachan/tarotdata"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-
-	"gopkg.in/yaml.v3"
 )
 
 type AppConfig struct {
-	BotToken string `yaml:"bot_token"`
+	BotToken          string `yaml:"bot_token"`
+	TarotDataFilename string `yaml:"tarot_data_filename"`
 }
 
-func readConfig(filename string) (*AppConfig, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("readConfig: %w", err)
-	}
-
-	var cfg AppConfig
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("readConfig: %w", err)
-	}
-
-	return &cfg, nil
+type App struct {
+	bot       *bot.Bot
+	tarotDeck *tarotdata.Deck
 }
 
-func Main(confFilename string) error {
-	conf, err := readConfig(confFilename)
+func NewApp(conf *AppConfig) (*App, error) {
+	tarotDeck, err := tarotdata.LoadDeck(conf.TarotDataFilename)
 	if err != nil {
-		return fmt.Errorf("Main: %w", err)
+		return nil, err
 	}
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
+	app := &App{
+		tarotDeck: tarotDeck,
+	}
 
 	opts := []bot.Option{
-		bot.WithDefaultHandler(handler),
+		bot.WithDefaultHandler(app.echoHandler),
 	}
 
-	b, err := bot.New(conf.BotToken, opts...)
+	tgbot, err := bot.New(conf.BotToken, opts...)
 	if err != nil {
-		return fmt.Errorf("Main: %w", err)
+		return nil, err
 	}
 
-	b.Start(ctx)
-	return nil
+	app.bot = tgbot
+
+	return app, nil
 }
 
-func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	b.SendMessage(ctx, &bot.SendMessageParams{
+func (app *App) Start(ctx context.Context) {
+	app.bot.Start(ctx)
+}
+
+func (app *App) echoHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	app.bot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   update.Message.Text,
 	})
