@@ -1,12 +1,10 @@
 package koakumachan
 
 import (
-	"bytes"
 	"context"
-	"gokoakumachan/koakumachan/moonphase"
+	"gokoakumachan/koakumachan/command"
 	"gokoakumachan/koakumachan/tarotdata"
 	"log"
-	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -17,17 +15,6 @@ const HELP_MESSAGE = `
 /moon - 顯示目前月相
 /tarot - 查詢托特塔羅牌牌義
 `
-
-var PHASE_EMOJI = map[string]string{
-	"New Moon":        "🌑",
-	"Waxing Crescent": "🌒",
-	"First Quarter":   "🌓",
-	"Waxing Gibbous":  "🌔",
-	"Full Moon":       "🌕",
-	"Waning Gibbous":  "🌖",
-	"Third Quarter":   "🌗",
-	"Waning Crescent": "🌘",
-}
 
 type AppConfig struct {
 	// When set, the bot runs in debug mode.
@@ -84,17 +71,11 @@ func NewApp(conf *AppConfig) (*App, error) {
 	tgbot.RegisterHandler(
 		bot.HandlerTypeMessageText, "/help", bot.MatchTypeExact, app.handleHelp)
 
-	tgbot.RegisterHandler(
-		bot.HandlerTypeMessageText, "/moon", bot.MatchTypeExact, app.handleMoon)
+	moonCommand := &command.MoonCommand{}
+	moonCommand.Register(tgbot)
 
-	tgbot.RegisterHandler(
-		bot.HandlerTypeMessageText, "/tarot", bot.MatchTypeExact, app.handleTarot)
-
-	tgbot.RegisterHandler(
-		bot.HandlerTypeCallbackQueryData, "tarot_type", bot.MatchTypePrefix, app.handleTarotType)
-
-	tgbot.RegisterHandler(
-		bot.HandlerTypeCallbackQueryData, "tarot_card", bot.MatchTypePrefix, app.handleTarotCard)
+	tarotCommand := &command.TarotCommand{TarotDeck: tarotDeck}
+	tarotCommand.Register(tgbot)
 
 	app.bot = tgbot
 
@@ -107,10 +88,18 @@ func (app *App) Start(ctx context.Context) {
 
 func (app *App) checkWhitelist(next bot.HandlerFunc) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
-		if len(app.UsernameWhitelist) > 0 &&
-			!app.UsernameWhitelist[update.Message.From.Username] {
-			log.Printf("Unauthorized access from %s", update.Message.From.Username)
-			return
+		username := ""
+		if update.Message != nil {
+			username = update.Message.From.Username
+		} else if update.CallbackQuery != nil {
+			username = update.CallbackQuery.From.Username
+		}
+
+		if len(app.UsernameWhitelist) > 0 {
+			if username == "" || !app.UsernameWhitelist[username] {
+				log.Printf("Unauthorized access from %s", username)
+				return
+			}
 		}
 
 		next(ctx, b, update)
@@ -121,122 +110,5 @@ func (app *App) handleHelp(ctx context.Context, b *bot.Bot, update *models.Updat
 	app.bot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   HELP_MESSAGE,
-	})
-}
-
-func (app *App) handleMoon(ctx context.Context, _ *bot.Bot, update *models.Update) {
-	phase := moonphase.New(time.Now()).PhaseName()
-	app.bot.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.Message.Chat.ID,
-		Text:   PHASE_EMOJI[phase] + " " + phase,
-	})
-}
-
-func (app *App) handleTarot(ctx context.Context, _ *bot.Bot, update *models.Update) {
-	// reply inline button
-	app.bot.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.Message.Chat.ID,
-		Text:   "請選擇類別",
-		ReplyMarkup: &models.InlineKeyboardMarkup{
-			InlineKeyboard: [][]models.InlineKeyboardButton{
-				{
-					{Text: "大阿卡那", CallbackData: "tarot_type.major_arcana"},
-					{Text: "小阿卡那", CallbackData: "tarot_type.minor_arcana"},
-					{Text: "宮廷", CallbackData: "tarot_type.court"},
-				},
-			},
-		},
-	})
-}
-
-func (app *App) handleTarotType(ctx context.Context, b *bot.Bot, update *models.Update) {
-	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-		CallbackQueryID: update.CallbackQuery.ID,
-		ShowAlert:       false,
-	})
-
-	query := update.CallbackQuery.Data
-	tarotType := query[len("tarot_type."):]
-
-	log.Println("tarot type:", tarotType)
-
-	var buttons [][]models.InlineKeyboardButton
-
-	switch tarotType {
-	case "major_arcana":
-		for range 4 {
-			buttons = append(buttons, []models.InlineKeyboardButton{})
-		}
-
-		for i, card := range app.tarotDeck.MajorArcana {
-			lineIdx := i / 7
-			buttons[lineIdx] = append(buttons[lineIdx], models.InlineKeyboardButton{
-				Text:         card.Title,
-				CallbackData: "tarot_card." + card.Name,
-			})
-		}
-
-	case "minor_arcana":
-		for range 10 {
-			buttons = append(buttons, []models.InlineKeyboardButton{})
-		}
-
-		for i, card := range app.tarotDeck.MinorArcana {
-			lineIdx := i % 10
-			buttons[lineIdx] = append(buttons[lineIdx], models.InlineKeyboardButton{
-				Text:         card.Title,
-				CallbackData: "tarot_card." + card.Name,
-			})
-		}
-
-	case "court":
-		for range 4 {
-			buttons = append(buttons, []models.InlineKeyboardButton{})
-		}
-
-		for i, card := range app.tarotDeck.Court {
-			lineIdx := i % 4
-			buttons[lineIdx] = append(buttons[lineIdx], models.InlineKeyboardButton{
-				Text:         card.Title,
-				CallbackData: "tarot_card." + card.Name,
-			})
-		}
-
-	default:
-		log.Printf("Unknown tarot type: %s", tarotType)
-	}
-
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
-		Text:   "請選擇卡",
-		ReplyMarkup: &models.InlineKeyboardMarkup{
-			InlineKeyboard: buttons,
-		},
-	})
-}
-
-func (app *App) handleTarotCard(ctx context.Context, b *bot.Bot, update *models.Update) {
-	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-		CallbackQueryID: update.CallbackQuery.ID,
-		ShowAlert:       false,
-	})
-
-	query := update.CallbackQuery.Data
-	cardName := query[len("tarot_card."):]
-
-	log.Println("tarot card:", cardName)
-
-	card := app.tarotDeck.Find(cardName)
-	if card == nil {
-		log.Printf("Unknown card: %s", cardName)
-		return
-	}
-
-	b.SendPhoto(ctx, &bot.SendPhotoParams{
-		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
-		Photo: &models.InputFileUpload{
-			Data: bytes.NewReader(card.ImageData),
-		},
-		Caption: card.Description,
 	})
 }
