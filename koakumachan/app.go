@@ -4,6 +4,7 @@ import (
 	"context"
 	"gokoakumachan/koakumachan/moonphase"
 	"gokoakumachan/koakumachan/tarotdata"
+	"log"
 	"time"
 
 	"github.com/go-telegram/bot"
@@ -28,15 +29,23 @@ var PHASE_EMOJI = map[string]string{
 }
 
 type AppConfig struct {
+	// When set, the bot runs in debug mode.
 	Debug bool `yaml:"debug"`
 
-	BotToken          string `yaml:"bot_token"`
+	// When set, only the user with this username is allowed to use the bot.
+	Admin string `yaml:"admin"`
+
+	// Telegram bot token.
+	BotToken string `yaml:"bot_token"`
+
+	// Filename of the tarot data.
 	TarotDataFilename string `yaml:"tarot_data_filename"`
 }
 
 type App struct {
 	bot       *bot.Bot
 	tarotDeck *tarotdata.Deck
+	conf      *AppConfig
 }
 
 func NewApp(conf *AppConfig) (*App, error) {
@@ -47,6 +56,7 @@ func NewApp(conf *AppConfig) (*App, error) {
 
 	app := &App{
 		tarotDeck: tarotDeck,
+		conf:      conf,
 	}
 
 	opts := []bot.Option{}
@@ -75,6 +85,11 @@ func (app *App) Start(ctx context.Context) {
 }
 
 func (app *App) handleHelp(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if app.conf.Admin != "" && update.Message.From.Username != app.conf.Admin {
+		log.Printf("Unauthorized access from %s", update.Message.From.Username)
+		return
+	}
+
 	app.bot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   HELP_MESSAGE,
@@ -82,6 +97,11 @@ func (app *App) handleHelp(ctx context.Context, b *bot.Bot, update *models.Updat
 }
 
 func (app *App) handleMoon(ctx context.Context, _ *bot.Bot, update *models.Update) {
+	if app.conf.Admin != "" && update.Message.From.Username != app.conf.Admin {
+		log.Printf("Unauthorized access from %s", update.Message.From.Username)
+		return
+	}
+
 	phase := moonphase.New(time.Now()).PhaseName()
 	app.bot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,

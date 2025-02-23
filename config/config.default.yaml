@@ -1,1 +1,11 @@
+# Replace with your telegram bot token. Required.
 bot_token: BOT_TOKEN
+
+# Set the path to the tarot data file. Required.
+tarot_data: tarot_data.json
+
+# Enable or disable debug mode. Optional.
+# debug: false
+
+# Set your telegram user id if you want to restrict access to the bot. Optional.
+# admin:
