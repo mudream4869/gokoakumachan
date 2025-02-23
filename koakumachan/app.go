@@ -15,7 +15,7 @@ import (
 const HELP_MESSAGE = `
 /help - 顯示幫助信息
 /moon - 顯示目前月相
-/tarot - 開始占卜
+/tarot - 查詢托特塔羅牌牌義
 `
 
 var PHASE_EMOJI = map[string]string{
