@@ -1,6 +1,7 @@
 package koakumachan
 
 import (
+	"bytes"
 	"context"
 	"gokoakumachan/koakumachan/moonphase"
 	"gokoakumachan/koakumachan/tarotdata"
@@ -82,6 +83,15 @@ func NewApp(conf *AppConfig) (*App, error) {
 	tgbot.RegisterHandler(
 		bot.HandlerTypeMessageText, "/moon", bot.MatchTypeExact, app.handleMoon)
 
+	tgbot.RegisterHandler(
+		bot.HandlerTypeMessageText, "/tarot", bot.MatchTypeExact, app.handleTarot)
+
+	tgbot.RegisterHandler(
+		bot.HandlerTypeCallbackQueryData, "tarot_type", bot.MatchTypePrefix, app.handleTarotType)
+
+	tgbot.RegisterHandler(
+		bot.HandlerTypeCallbackQueryData, "tarot_card", bot.MatchTypePrefix, app.handleTarotCard)
+
 	app.bot = tgbot
 
 	return app, nil
@@ -121,5 +131,129 @@ func (app *App) handleMoon(ctx context.Context, _ *bot.Bot, update *models.Updat
 	app.bot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   PHASE_EMOJI[phase] + " " + phase,
+	})
+}
+
+func (app *App) handleTarot(ctx context.Context, _ *bot.Bot, update *models.Update) {
+	if !app.checkWhitelist(update.Message.From.Username) {
+		log.Printf("Unauthorized access from %s", update.Message.From.Username)
+		return
+	}
+
+	// reply inline button
+	app.bot.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.Message.Chat.ID,
+		Text:   "請選擇類別",
+		ReplyMarkup: &models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{
+					{Text: "大阿卡那", CallbackData: "tarot_type.major_arcana"},
+					{Text: "小阿卡那", CallbackData: "tarot_type.minor_arcana"},
+					{Text: "宮廷", CallbackData: "tarot_type.court"},
+				},
+			},
+		},
+	})
+}
+
+func (app *App) handleTarotType(ctx context.Context, b *bot.Bot, update *models.Update) {
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+
+	if !app.checkWhitelist(update.CallbackQuery.From.Username) {
+		log.Printf("Unauthorized access from %s", update.CallbackQuery.From.Username)
+		return
+	}
+
+	query := update.CallbackQuery.Data
+	tarotType := query[len("tarot_type."):]
+
+	log.Println("tarot type:", tarotType)
+
+	var buttons [][]models.InlineKeyboardButton
+
+	switch tarotType {
+	case "major_arcana":
+		for range 4 {
+			buttons = append(buttons, []models.InlineKeyboardButton{})
+		}
+
+		for i, card := range app.tarotDeck.MajorArcana {
+			lineIdx := i / 7
+			buttons[lineIdx] = append(buttons[lineIdx], models.InlineKeyboardButton{
+				Text:         card.Title,
+				CallbackData: "tarot_card." + card.Name,
+			})
+		}
+
+	case "minor_arcana":
+		for range 10 {
+			buttons = append(buttons, []models.InlineKeyboardButton{})
+		}
+
+		for i, card := range app.tarotDeck.MinorArcana {
+			lineIdx := i % 10
+			buttons[lineIdx] = append(buttons[lineIdx], models.InlineKeyboardButton{
+				Text:         card.Title,
+				CallbackData: "tarot_card." + card.Name,
+			})
+		}
+
+	case "court":
+		for range 4 {
+			buttons = append(buttons, []models.InlineKeyboardButton{})
+		}
+
+		for i, card := range app.tarotDeck.Court {
+			lineIdx := i % 4
+			buttons[lineIdx] = append(buttons[lineIdx], models.InlineKeyboardButton{
+				Text:         card.Title,
+				CallbackData: "tarot_card." + card.Name,
+			})
+		}
+
+	default:
+		log.Printf("Unknown tarot type: %s", tarotType)
+	}
+
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
+		Text:   "請選擇卡",
+		ReplyMarkup: &models.InlineKeyboardMarkup{
+			InlineKeyboard: buttons,
+		},
+	})
+}
+
+func (app *App) handleTarotCard(ctx context.Context, b *bot.Bot, update *models.Update) {
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+
+	if !app.checkWhitelist(update.CallbackQuery.From.Username) {
+		log.Printf("Unauthorized access from %s", update.CallbackQuery.From.Username)
+		return
+	}
+
+	query := update.CallbackQuery.Data
+	cardName := query[len("tarot_card."):]
+
+	log.Println("tarot card:", cardName)
+
+	card := app.tarotDeck.Find(cardName)
+	if card == nil {
+		log.Printf("Unknown card: %s", cardName)
+		return
+	}
+
+	b.SendPhoto(ctx, &bot.SendPhotoParams{
+		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
+		Photo: &models.InputFileUpload{
+			Data: bytes.NewReader(card.ImageData),
+		},
+		Caption: card.Description,
 	})
 }
