@@ -32,8 +32,8 @@ type AppConfig struct {
 	// When set, the bot runs in debug mode.
 	Debug bool `yaml:"debug"`
 
-	// When set, only the user with this username is allowed to use the bot.
-	Admin string `yaml:"admin"`
+	// When set, only the users with these usernames are allowed to use the bot.
+	UsernameWhitelist []string `yaml:"username_whitelist"`
 
 	// Telegram bot token.
 	BotToken string `yaml:"bot_token"`
@@ -43,9 +43,10 @@ type AppConfig struct {
 }
 
 type App struct {
-	bot       *bot.Bot
-	tarotDeck *tarotdata.Deck
-	conf      *AppConfig
+	bot               *bot.Bot
+	tarotDeck         *tarotdata.Deck
+	UsernameWhitelist map[string]bool
+	conf              *AppConfig
 }
 
 func NewApp(conf *AppConfig) (*App, error) {
@@ -54,9 +55,15 @@ func NewApp(conf *AppConfig) (*App, error) {
 		return nil, err
 	}
 
+	usernameWhitelist := make(map[string]bool)
+	for _, username := range conf.UsernameWhitelist {
+		usernameWhitelist[username] = true
+	}
+
 	app := &App{
-		tarotDeck: tarotDeck,
-		conf:      conf,
+		tarotDeck:         tarotDeck,
+		UsernameWhitelist: usernameWhitelist,
+		conf:              conf,
 	}
 
 	opts := []bot.Option{}
@@ -84,8 +91,16 @@ func (app *App) Start(ctx context.Context) {
 	app.bot.Start(ctx)
 }
 
+func (app *App) checkWhitelist(username string) bool {
+	if len(app.UsernameWhitelist) == 0 {
+		return true
+	}
+
+	return app.UsernameWhitelist[username]
+}
+
 func (app *App) handleHelp(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if app.conf.Admin != "" && update.Message.From.Username != app.conf.Admin {
+	if !app.checkWhitelist(update.Message.From.Username) {
 		log.Printf("Unauthorized access from %s", update.Message.From.Username)
 		return
 	}
@@ -97,7 +112,7 @@ func (app *App) handleHelp(ctx context.Context, b *bot.Bot, update *models.Updat
 }
 
 func (app *App) handleMoon(ctx context.Context, _ *bot.Bot, update *models.Update) {
-	if app.conf.Admin != "" && update.Message.From.Username != app.conf.Admin {
+	if !app.checkWhitelist(update.Message.From.Username) {
 		log.Printf("Unauthorized access from %s", update.Message.From.Username)
 		return
 	}

@@ -8,4 +8,4 @@ tarot_data: tarot_data.json
 # debug: false
 
 # Set your telegram user id if you want to restrict access to the bot. Optional.
-# admin:
+# username_whitelist: []
