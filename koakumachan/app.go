@@ -72,6 +72,10 @@ func NewApp(conf *AppConfig) (*App, error) {
 		opts = append(opts, bot.WithDebug())
 	}
 
+	if len(conf.UsernameWhitelist) > 0 {
+		opts = append(opts, bot.WithMiddlewares(app.checkWhitelist))
+	}
+
 	tgbot, err := bot.New(conf.BotToken, opts...)
 	if err != nil {
 		return nil, err
@@ -101,20 +105,19 @@ func (app *App) Start(ctx context.Context) {
 	app.bot.Start(ctx)
 }
 
-func (app *App) checkWhitelist(username string) bool {
-	if len(app.UsernameWhitelist) == 0 {
-		return true
-	}
+func (app *App) checkWhitelist(next bot.HandlerFunc) bot.HandlerFunc {
+	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
+		if len(app.UsernameWhitelist) > 0 &&
+			!app.UsernameWhitelist[update.Message.From.Username] {
+			log.Printf("Unauthorized access from %s", update.Message.From.Username)
+			return
+		}
 
-	return app.UsernameWhitelist[username]
+		next(ctx, b, update)
+	}
 }
 
 func (app *App) handleHelp(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if !app.checkWhitelist(update.Message.From.Username) {
-		log.Printf("Unauthorized access from %s", update.Message.From.Username)
-		return
-	}
-
 	app.bot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   HELP_MESSAGE,
@@ -122,11 +125,6 @@ func (app *App) handleHelp(ctx context.Context, b *bot.Bot, update *models.Updat
 }
 
 func (app *App) handleMoon(ctx context.Context, _ *bot.Bot, update *models.Update) {
-	if !app.checkWhitelist(update.Message.From.Username) {
-		log.Printf("Unauthorized access from %s", update.Message.From.Username)
-		return
-	}
-
 	phase := moonphase.New(time.Now()).PhaseName()
 	app.bot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
@@ -135,11 +133,6 @@ func (app *App) handleMoon(ctx context.Context, _ *bot.Bot, update *models.Updat
 }
 
 func (app *App) handleTarot(ctx context.Context, _ *bot.Bot, update *models.Update) {
-	if !app.checkWhitelist(update.Message.From.Username) {
-		log.Printf("Unauthorized access from %s", update.Message.From.Username)
-		return
-	}
-
 	// reply inline button
 	app.bot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
@@ -161,11 +154,6 @@ func (app *App) handleTarotType(ctx context.Context, b *bot.Bot, update *models.
 		CallbackQueryID: update.CallbackQuery.ID,
 		ShowAlert:       false,
 	})
-
-	if !app.checkWhitelist(update.CallbackQuery.From.Username) {
-		log.Printf("Unauthorized access from %s", update.CallbackQuery.From.Username)
-		return
-	}
 
 	query := update.CallbackQuery.Data
 	tarotType := query[len("tarot_type."):]
@@ -232,11 +220,6 @@ func (app *App) handleTarotCard(ctx context.Context, b *bot.Bot, update *models.
 		CallbackQueryID: update.CallbackQuery.ID,
 		ShowAlert:       false,
 	})
-
-	if !app.checkWhitelist(update.CallbackQuery.From.Username) {
-		log.Printf("Unauthorized access from %s", update.CallbackQuery.From.Username)
-		return
-	}
 
 	query := update.CallbackQuery.Data
 	cardName := query[len("tarot_card."):]
