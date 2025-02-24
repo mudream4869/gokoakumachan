@@ -1,4 +1,4 @@
-module gokoakumachan
+module github.com/mudream4869/gokoakumachan
 
 go 1.24.0
 

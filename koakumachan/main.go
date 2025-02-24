@@ -2,9 +2,10 @@ package koakumachan
 
 import (
 	"context"
-	"gokoakumachan/koakumachan/kautil"
 	"os"
 	"os/signal"
+
+	"github.com/mudream4869/gokoakumachan/koakumachan/kautil"
 
 	"gopkg.in/yaml.v3"
 )

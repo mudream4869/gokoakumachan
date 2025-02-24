@@ -2,8 +2,9 @@ package main
 
 import (
 	"flag"
-	"gokoakumachan/koakumachan"
 	"log"
+
+	"github.com/mudream4869/gokoakumachan/koakumachan"
 )
 
 func main() {

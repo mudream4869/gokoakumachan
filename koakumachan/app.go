@@ -3,11 +3,12 @@ package koakumachan
 import (
 	"context"
 	"errors"
-	"gokoakumachan/koakumachan/command"
-	"gokoakumachan/koakumachan/kautil"
-	"gokoakumachan/koakumachan/tarotdata"
 	"log"
 	"os"
+
+	"github.com/mudream4869/gokoakumachan/koakumachan/command"
+	"github.com/mudream4869/gokoakumachan/koakumachan/kautil"
+	"github.com/mudream4869/gokoakumachan/koakumachan/tarotdata"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"

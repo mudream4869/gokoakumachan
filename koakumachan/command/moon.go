@@ -2,8 +2,9 @@ package command
 
 import (
 	"context"
-	"gokoakumachan/koakumachan/moonphase"
 	"time"
+
+	"github.com/mudream4869/gokoakumachan/koakumachan/moonphase"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"

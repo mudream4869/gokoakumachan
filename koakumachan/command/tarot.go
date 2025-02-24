@@ -3,8 +3,9 @@ package command
 import (
 	"bytes"
 	"context"
-	"gokoakumachan/koakumachan/tarotdata"
 	"log"
+
+	"github.com/mudream4869/gokoakumachan/koakumachan/tarotdata"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
