@@ -2,7 +2,7 @@ package koakumachan
 
 import (
 	"context"
-	"fmt"
+	"gokoakumachan/koakumachan/kautil"
 	"os"
 	"os/signal"
 
@@ -12,12 +12,12 @@ import (
 func readConfig(filename string) (*AppConfig, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("readConfig: %w", err)
+		return nil, kautil.Errorf("%w", err)
 	}
 
 	var cfg AppConfig
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("readConfig: %w", err)
+		return nil, kautil.Errorf("%w", err)
 	}
 
 	return &cfg, nil
@@ -26,7 +26,7 @@ func readConfig(filename string) (*AppConfig, error) {
 func Main(confFilename string) error {
 	conf, err := readConfig(confFilename)
 	if err != nil {
-		return fmt.Errorf("Main: %w", err)
+		return kautil.Errorf("%w", err)
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -34,7 +34,7 @@ func Main(confFilename string) error {
 
 	app, err := NewApp(conf)
 	if err != nil {
-		return fmt.Errorf("Main: %w", err)
+		return kautil.Errorf("%w", err)
 	}
 
 	app.Start(ctx)

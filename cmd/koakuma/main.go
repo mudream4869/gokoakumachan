@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"gokoakumachan/koakumachan"
+	"log"
 )
 
 func main() {
@@ -11,6 +12,6 @@ func main() {
 
 	err := koakumachan.Main(*confFilename)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 }

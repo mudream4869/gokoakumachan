@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"gokoakumachan/koakumachan/command"
+	"gokoakumachan/koakumachan/kautil"
 	"gokoakumachan/koakumachan/tarotdata"
 	"log"
 	"os"
@@ -49,7 +50,7 @@ type App struct {
 func NewApp(conf *AppConfig) (*App, error) {
 	tarotDeck, err := tarotdata.LoadDeck(conf.TarotDataFilename)
 	if err != nil {
-		return nil, err
+		return nil, kautil.Errorf("%w", err)
 	}
 
 	usernameWhitelist := make(map[string]bool)
@@ -73,23 +74,23 @@ func NewApp(conf *AppConfig) (*App, error) {
 	}
 
 	if conf.BotCredentialFile == "" {
-		return nil, ErrBotCredentialFileNotSet
+		return nil, kautil.Errorf("%w", ErrBotCredentialFileNotSet)
 	}
 
 	bs, err := os.ReadFile(conf.BotCredentialFile)
 	if err != nil {
-		return nil, err
+		return nil, kautil.Errorf("%w", err)
 	}
 
 	var botCredential BotCredential
 	err = yaml.Unmarshal(bs, &botCredential)
 	if err != nil {
-		return nil, err
+		return nil, kautil.Errorf("%w", err)
 	}
 
 	tgbot, err := bot.New(botCredential.Token, opts...)
 	if err != nil {
-		return nil, err
+		return nil, kautil.Errorf("%w", err)
 	}
 
 	tgbot.RegisterHandler(
