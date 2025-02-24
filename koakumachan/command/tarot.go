@@ -100,9 +100,15 @@ func (c *TarotCommand) handleTarotType(ctx context.Context, b *bot.Bot, update *
 		log.Printf("Unknown tarot type: %s", tarotType)
 	}
 
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
-		Text:   "請選擇卡",
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text:      "請選擇卡",
+	})
+
+	b.EditMessageReplyMarkup(ctx, &bot.EditMessageReplyMarkupParams{
+		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
 		ReplyMarkup: &models.InlineKeyboardMarkup{
 			InlineKeyboard: buttons,
 		},
@@ -125,6 +131,11 @@ func (c *TarotCommand) handleTarotCard(ctx context.Context, b *bot.Bot, update *
 		log.Printf("Unknown card: %s", cardName)
 		return
 	}
+
+	b.DeleteMessage(ctx, &bot.DeleteMessageParams{
+		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+	})
 
 	b.SendPhoto(ctx, &bot.SendPhotoParams{
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
