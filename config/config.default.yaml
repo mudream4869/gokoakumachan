@@ -1,5 +1,5 @@
-# Replace with your telegram bot token. Required.
-bot_token: BOT_TOKEN
+# Your telegram bot credential file. Required.
+bot_credential_file: bot_credential.yaml
 
 # Set the path to the tarot data file. Required.
 tarot_data: tarot_data.json

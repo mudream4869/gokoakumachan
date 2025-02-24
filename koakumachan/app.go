@@ -2,19 +2,28 @@ package koakumachan
 
 import (
 	"context"
+	"errors"
 	"gokoakumachan/koakumachan/command"
 	"gokoakumachan/koakumachan/tarotdata"
 	"log"
+	"os"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"gopkg.in/yaml.v3"
 )
+
+var ErrBotCredentialFileNotSet = errors.New("bot credential file not set")
 
 const HELP_MESSAGE = `
 /help - 顯示幫助信息
 /moon - 顯示目前月相
 /tarot - 查詢托特塔羅牌牌義
 `
+
+type BotCredential struct {
+	Token string `yaml:"token"`
+}
 
 type AppConfig struct {
 	// When set, the bot runs in debug mode.
@@ -24,7 +33,7 @@ type AppConfig struct {
 	UsernameWhitelist []string `yaml:"username_whitelist"`
 
 	// Telegram bot token.
-	BotToken string `yaml:"bot_token"`
+	BotCredentialFile string `yaml:"bot_credential_file"`
 
 	// Filename of the tarot data.
 	TarotDataFilename string `yaml:"tarot_data_filename"`
@@ -63,7 +72,22 @@ func NewApp(conf *AppConfig) (*App, error) {
 		opts = append(opts, bot.WithMiddlewares(app.checkWhitelist))
 	}
 
-	tgbot, err := bot.New(conf.BotToken, opts...)
+	if conf.BotCredentialFile == "" {
+		return nil, ErrBotCredentialFileNotSet
+	}
+
+	bs, err := os.ReadFile(conf.BotCredentialFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var botCredential BotCredential
+	err = yaml.Unmarshal(bs, &botCredential)
+	if err != nil {
+		return nil, err
+	}
+
+	tgbot, err := bot.New(botCredential.Token, opts...)
 	if err != nil {
 		return nil, err
 	}
