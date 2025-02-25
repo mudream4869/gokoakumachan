@@ -10,9 +10,11 @@ type Card struct {
 	Title         string `json:"title"`
 	Description   string `json:"description"`
 	ImageFilename string `json:"image_filename"`
+	InnerNumber   int    `json:"inner_number"`
+	Element       string `json:"element"`
 
 	// ImageData is the raw image data of the card.
-	ImageData []byte
+	ImageData []byte `json:"-"`
 }
 
 type Deck struct {

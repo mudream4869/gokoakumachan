@@ -2,10 +2,19 @@
 bot_credential_file: bot_credential.yaml
 
 # Set the path to the tarot data file. Required.
-tarot_data: tarot_data.json
+tarot_data_filename: tarot_data.json
 
 # Enable or disable debug mode. Optional.
 # debug: false
 
 # Set your telegram user id if you want to restrict access to the bot. Optional.
 # username_whitelist: []
+
+notion:
+  # Replace with your notion app token.
+  # Required if you want to do operations on your notion.
+  credential_file: notion_credential.yaml
+
+  # Replace with your notion tarot database id.
+  # Required if you want to download tarot data from your notion.
+  tarot_data_database_id: DATABASE_ID
