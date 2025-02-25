@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -39,6 +41,26 @@ func getExtensionFromFilename(filename string) string {
 	return tmp[len(tmp)-1]
 }
 
+func downloadFileFromURL(url, filepath string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return kautil.Errorf("%w", err)
+	}
+	defer resp.Body.Close()
+
+	f, err := os.Create(filepath)
+	if err != nil {
+		return kautil.Errorf("%w", err)
+	}
+
+	_, err = io.Copy(f, resp.Body)
+	if err != nil {
+		return kautil.Errorf("%w", err)
+	}
+
+	return nil
+}
+
 type TarotData struct {
 	MajorArcana []*tarotdata.Card `json:"major_arcana"`
 	MinorArcana []*tarotdata.Card `json:"minor_arcana"`
@@ -61,6 +83,8 @@ func Main(confFilename string) error {
 		return kautil.Errorf("%w", err)
 	}
 
+	os.Mkdir(TAROT_IMAGES_DIR, 0755)
+
 	var fdata TarotData
 
 	for _, row := range data {
@@ -78,6 +102,13 @@ func Main(confFilename string) error {
 			imgFile := imgFiles[0]
 			ext := getExtensionFromFilename(imgFile.Name)
 			imgFilename = path.Join(TAROT_IMAGES_DIR, fmt.Sprintf("%s.%s", name, ext))
+
+			url := imgFile.File.URL
+			err := downloadFileFromURL(url, imgFilename)
+			if err != nil {
+				log.Println(name, err)
+				imgFilename = ""
+			}
 		}
 
 		card := tarotdata.Card{
