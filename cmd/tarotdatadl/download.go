@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/jomei/notionapi"
@@ -103,11 +105,15 @@ func Main(confFilename string) error {
 			ext := getExtensionFromFilename(imgFile.Name)
 			imgFilename = path.Join(TAROT_IMAGES_DIR, fmt.Sprintf("%s.%s", name, ext))
 
-			url := imgFile.File.URL
-			err := downloadFileFromURL(url, imgFilename)
-			if err != nil {
-				log.Println(name, err)
-				imgFilename = ""
+			if _, err := os.Stat(imgFilename); err == nil {
+				log.Println(name, "already exists")
+			} else if errors.Is(err, os.ErrNotExist) {
+				url := imgFile.File.URL
+				err := downloadFileFromURL(url, imgFilename)
+				if err != nil {
+					log.Println(name, err)
+					imgFilename = ""
+				}
 			}
 		}
 
@@ -130,7 +136,21 @@ func Main(confFilename string) error {
 		}
 	}
 
-	log.Println(len(fdata.MajorArcana), len(fdata.MinorArcana), len(fdata.Court))
+	log.Println("Major Arcana:", len(fdata.MajorArcana))
+	log.Println("Minor Arcana:", len(fdata.MinorArcana))
+	log.Println("Court:", len(fdata.Court))
+
+	sort.Slice(fdata.MajorArcana, func(i, j int) bool {
+		return fdata.MajorArcana[i].InnerNumber < fdata.MajorArcana[j].InnerNumber
+	})
+
+	sort.Slice(fdata.MinorArcana, func(i, j int) bool {
+		return fdata.MinorArcana[i].InnerNumber < fdata.MinorArcana[j].InnerNumber
+	})
+
+	sort.Slice(fdata.Court, func(i, j int) bool {
+		return fdata.Court[i].InnerNumber < fdata.Court[j].InnerNumber
+	})
 
 	bs, err := json.MarshalIndent(fdata, "", "  ")
 	if err != nil {

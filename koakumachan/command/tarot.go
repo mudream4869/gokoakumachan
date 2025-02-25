@@ -75,8 +75,8 @@ func (c *TarotCommand) handleTarotType(ctx context.Context, b *bot.Bot, update *
 			buttons = append(buttons, []models.InlineKeyboardButton{})
 		}
 
-		for i, card := range c.TarotDeck.MinorArcana {
-			lineIdx := i % 10
+		for _, card := range c.TarotDeck.MinorArcana {
+			lineIdx := card.InnerNumber - 1
 			buttons[lineIdx] = append(buttons[lineIdx], models.InlineKeyboardButton{
 				Text:         card.Title,
 				CallbackData: "tarot_card." + card.Name,
