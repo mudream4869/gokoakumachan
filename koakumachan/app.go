@@ -103,6 +103,9 @@ func NewApp(conf *AppConfig) (*App, error) {
 	tarotCommand := &command.TarotCommand{TarotDeck: tarotDeck}
 	tarotCommand.Register(tgbot)
 
+	coverCommand := &command.CoverCommand{}
+	coverCommand.Register(tgbot)
+
 	app.bot = tgbot
 
 	return app, nil
