@@ -21,6 +21,7 @@ const HELP_MESSAGE = `
 /help - 顯示幫助信息
 /moon - 顯示目前月相
 /tarot - 查詢托特塔羅牌牌義
+/cover_from_url <url> - 根據提供的 cover url 轉成 jpg 並回覆
 `
 
 type BotCredential struct {
