@@ -10,7 +10,7 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-var PHASE_EMOJI = map[string]string{
+var phaseEmoji = map[string]string{
 	"New Moon":        "🌑",
 	"Waxing Crescent": "🌒",
 	"First Quarter":   "🌓",
@@ -33,6 +33,6 @@ func (c *MoonCommand) HandleMoon(ctx context.Context, b *bot.Bot, update *models
 	phase := moonphase.New(time.Now()).PhaseName()
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
-		Text:   PHASE_EMOJI[phase] + " " + phase,
+		Text:   phaseEmoji[phase] + " " + phase,
 	})
 }

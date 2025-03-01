@@ -18,7 +18,7 @@ import (
 	"github.com/mudream4869/gokoakumachan/koakumachan/kastate"
 )
 
-const COVER_SIZE_LIMIT = 300 * 1024 // 300KB
+const coverSizeLimit = 300 * 1024 // 300KB
 
 type CoverCommand struct {
 }
@@ -56,7 +56,7 @@ func (c *CoverCommand) handleCoverFromURL1(ctx context.Context, b *bot.Bot, upda
 	}
 	defer resp.Body.Close()
 
-	img, filename, err := image.Decode(io.LimitReader(resp.Body, COVER_SIZE_LIMIT))
+	img, filename, err := image.Decode(io.LimitReader(resp.Body, coverSizeLimit))
 	if err != nil {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,

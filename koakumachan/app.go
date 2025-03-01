@@ -18,7 +18,7 @@ import (
 
 var ErrBotCredentialFileNotSet = errors.New("bot credential file not set")
 
-const HELP_MESSAGE = `
+const helpMessage = `
 /help - 顯示幫助信息
 /moon - 顯示目前月相
 /tarot - 查詢托特塔羅牌牌義
@@ -45,8 +45,7 @@ type AppConfig struct {
 
 type App struct {
 	bot               *bot.Bot
-	tarotDeck         *tarotdata.Deck
-	UsernameWhitelist map[string]bool
+	usernameWhitelist map[string]bool
 	conf              *AppConfig
 }
 
@@ -62,8 +61,7 @@ func NewApp(conf *AppConfig) (*App, error) {
 	}
 
 	app := &App{
-		tarotDeck:         tarotDeck,
-		UsernameWhitelist: usernameWhitelist,
+		usernameWhitelist: usernameWhitelist,
 		conf:              conf,
 	}
 
@@ -129,8 +127,8 @@ func (app *App) checkWhitelist(next bot.HandlerFunc) bot.HandlerFunc {
 			username = update.CallbackQuery.From.Username
 		}
 
-		if len(app.UsernameWhitelist) > 0 {
-			if username == "" || !app.UsernameWhitelist[username] {
+		if len(app.usernameWhitelist) > 0 {
+			if username == "" || !app.usernameWhitelist[username] {
 				log.Printf("Unauthorized access from %s", username)
 				return
 			}
@@ -143,7 +141,7 @@ func (app *App) checkWhitelist(next bot.HandlerFunc) bot.HandlerFunc {
 func (app *App) handleHelp(ctx context.Context, b *bot.Bot, update *models.Update) {
 	app.bot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
-		Text:   HELP_MESSAGE,
+		Text:   helpMessage,
 	})
 }
 
