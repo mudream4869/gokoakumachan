@@ -12,10 +12,10 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/mudream4869/gokoakumachan/koakumachan/kastate"
 )
 
 const COVER_SIZE_LIMIT = 300 * 1024 // 300KB
@@ -29,18 +29,21 @@ func (c *CoverCommand) Register(b *bot.Bot) {
 }
 
 func (c *CoverCommand) handleCoverFromURL(ctx context.Context, b *bot.Bot, update *models.Update) {
-	// `/cover_from_url <url>`
-	// reply with the cover image of the url
+	chatID := update.Message.Chat.ID
 
-	if !strings.HasPrefix(update.Message.Text, "/cover_from_url ") {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   "請輸入 `/cover_from_url <url>`",
-		})
-		return
-	}
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: chatID,
+		Text:   "請輸入圖片網址",
+	})
 
-	url := update.Message.Text[len("/cover_from_url "):]
+	kastate.State.Set(chatID, c.handleCoverFromURL1)
+}
+
+func (c *CoverCommand) handleCoverFromURL1(ctx context.Context, b *bot.Bot, update *models.Update) {
+	chatID := update.Message.Chat.ID
+	defer kastate.State.Delete(chatID)
+
+	url := update.Message.Text
 
 	resp, err := http.Get(url)
 	if err != nil {

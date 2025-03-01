@@ -25,3 +25,9 @@ func (lm *LockMap[Key, Value]) Get(key Key) (Value, bool) {
 	v, ok := lm.m[key]
 	return v, ok
 }
+
+func (lm *LockMap[Key, Value]) Delete(key Key) {
+	lm.lock.Lock()
+	defer lm.lock.Unlock()
+	delete(lm.m, key)
+}
