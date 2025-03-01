@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/mudream4869/gokoakumachan/koakumachan/command"
+	"github.com/mudream4869/gokoakumachan/koakumachan/kastate"
 	"github.com/mudream4869/gokoakumachan/koakumachan/kautil"
 	"github.com/mudream4869/gokoakumachan/koakumachan/tarotdata"
 
@@ -66,7 +67,10 @@ func NewApp(conf *AppConfig) (*App, error) {
 		conf:              conf,
 	}
 
-	opts := []bot.Option{}
+	opts := []bot.Option{
+		bot.WithDefaultHandler(app.handleDefault),
+	}
+
 	if conf.Debug {
 		opts = append(opts, bot.WithDebug())
 	}
@@ -141,4 +145,12 @@ func (app *App) handleHelp(ctx context.Context, b *bot.Bot, update *models.Updat
 		ChatID: update.Message.Chat.ID,
 		Text:   HELP_MESSAGE,
 	})
+}
+
+func (app *App) handleDefault(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if stateFunc, ok := kastate.State.Get(update.Message.Chat.ID); ok {
+		stateFunc(ctx, b, update)
+	} else {
+		app.handleHelp(ctx, b, update)
+	}
 }
